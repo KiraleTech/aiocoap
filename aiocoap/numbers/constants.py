@@ -96,7 +96,7 @@ message exchange can be purged"""
 DEFAULT_BLOCK_SIZE_EXP = 6 # maximum block size 1024
 """Default size exponent for blockwise transfers."""
 
-EMPTY_ACK_DELAY = 0.1
+EMPTY_ACK_DELAY = 1
 """After this time protocol sends empty ACK, and separate response"""
 
 REQUEST_TIMEOUT = MAX_TRANSMIT_WAIT

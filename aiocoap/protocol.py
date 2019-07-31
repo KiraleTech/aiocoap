@@ -699,7 +699,7 @@ class Request(BaseUnicastRequest, interfaces.Request):
             self._set_response_and_observation_error(e)
 
     def _set_response_and_observation_error(self, e):
-        self.response.set_exception(e)
+        #self.response.set_exception(e)
         if self.app_request.opt.observe is not None:
             self._observation_handled = True
             self.observation.error(e)
@@ -1190,6 +1190,9 @@ class Responder(object):
             self.log.error("An exception occurred while rendering a resource: %r"%e)
             self.log.exception(e)
         else:
+            if not response:
+                return
+
             if response is NoResponse:
                 self.send_final_response(response, request)
                 return
