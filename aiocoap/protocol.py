@@ -733,7 +733,7 @@ class Request(BaseUnicastRequest, interfaces.Request):
         def timeout_request(self=self):
             """Clean the Request after a timeout."""
 
-            self.log.info("Request timed out")
+            self.log.info("Request timed out, Message ID: %s" % request.mid)
             del self.protocol.outgoing_requests[(request.token, request.remote)]
             self._set_response_and_observation_error(error.RequestTimedOut())
 
@@ -748,7 +748,9 @@ class Request(BaseUnicastRequest, interfaces.Request):
         else:
             if self._requesttimeout:
                 self._requesttimeout.cancel()
-                self.log.debug("Timeout is %r"%REQUEST_TIMEOUT)
+            # NON messages don't expect response in Thread
+            if request.mtype != NON:
+                self.log.debug("Timeout is %r" % REQUEST_TIMEOUT)
                 self._requesttimeout = self.protocol.loop.call_later(REQUEST_TIMEOUT, timeout_request)
                 self.protocol.outgoing_requests[(request.token, request.remote)] = self
 
@@ -1182,7 +1184,8 @@ class Responder(object):
         else:
             request = initial_block
 
-        delayed_ack = self.protocol.loop.call_later(EMPTY_ACK_DELAY, self.send_empty_ack, request)
+        if request.mtype != NON:
+            delayed_ack = self.protocol.loop.call_later(EMPTY_ACK_DELAY, self.send_empty_ack, request)
 
         yield from self.handle_observe_request(request)
 
@@ -1214,7 +1217,8 @@ class Responder(object):
             else:
                 self.send_final_response(response, request)
         finally:
-            delayed_ack.cancel()
+            if request.mtype != NON:
+                delayed_ack.cancel()
 
     def respond_with_error(self, request, code, payload):
         """Helper method to send error response to client."""
