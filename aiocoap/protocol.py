@@ -275,6 +275,10 @@ class Context(interfaces.RequestProvider):
         retransmission."""
         key = (message.remote, message.mid)
 
+        for act_key in self._active_exchanges:
+            if key[0].sockaddr[0] == act_key[0].sockaddr[0] and key[0].sockaddr[1] == act_key[0].sockaddr[1] and key[1] == act_key[1]:
+                key = act_key
+
         if key not in self._active_exchanges:
             self.log.warning("Received %s from %s, but could not match it to a running exchange.", message.mtype, message.remote)
             return
@@ -288,7 +292,7 @@ class Context(interfaces.RequestProvider):
                 exchange_monitor.response(message)
         self.log.debug("Exchange removed, message ID: %d." % message.mid)
 
-        self._continue_backlog(message.remote)
+        self._continue_backlog(key[0])
 
     def _continue_backlog(self, remote):
         """After an exchange has been removed, start working off the backlog or
@@ -385,10 +389,11 @@ class Context(interfaces.RequestProvider):
 
         self.log.debug("Received Response: %r" % response)
 
-        request = self.outgoing_requests.pop((response.token, response.remote), None)
-        if request is not None:
-            request.handle_response(response)
-            return True
+        for token, remote in self.outgoing_requests:
+            if response.remote.sockaddr[0] == remote.sockaddr[0] and response.remote.sockaddr[1] == remote.sockaddr[1] and response.token == token:
+                request = self.outgoing_requests.pop((token, remote), None)
+                request.handle_response(response)
+                return True
 
         request = self.outgoing_requests.get((response.token, None), None)
         if request is not None:
@@ -743,9 +748,9 @@ class Request(BaseUnicastRequest, interfaces.Request):
         else:
             if self._requesttimeout:
                 self._requesttimeout.cancel()
-            self.log.debug("Timeout is %r"%REQUEST_TIMEOUT)
-            self._requesttimeout = self.protocol.loop.call_later(REQUEST_TIMEOUT, timeout_request)
-            self.protocol.outgoing_requests[(request.token, request.remote)] = self
+                self.log.debug("Timeout is %r"%REQUEST_TIMEOUT)
+                self._requesttimeout = self.protocol.loop.call_later(REQUEST_TIMEOUT, timeout_request)
+                self.protocol.outgoing_requests[(request.token, request.remote)] = self
 
             self.log.debug("Sending request - Token: %s, Remote: %s" % (binascii.b2a_hex(request.token).decode('ascii'), request.remote))
 
