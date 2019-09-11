@@ -17,7 +17,7 @@ from distutils.core import Command
 import os
 
 name = "aiocoap"
-version = "kirale-1.1"
+version = "kirale-1.2"
 description = "Python CoAP library"
 longdescription = __doc__
 

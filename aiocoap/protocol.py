@@ -1222,6 +1222,9 @@ class Responder(object):
 
     def respond_with_error(self, request, code, payload):
         """Helper method to send error response to client."""
+        # Thread requires NON requests not to have responses
+        if request.mtype is NON:
+            return
         payload = payload.encode('ascii')
         self.log.info("Sending error response: %r"%payload)
         response = Message(code=code, payload=payload)
