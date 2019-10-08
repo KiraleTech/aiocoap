@@ -514,7 +514,7 @@ class Context(interfaces.RequestProvider):
 
     @classmethod
     @asyncio.coroutine
-    def create_client_context(cls, *, dump_to=None, loggername="coap", loop=None):
+    def create_client_context(cls, *, dump_to=None, loggername="coap", loop=None, kidev=None):
         """Create a context bound to all addresses on a random listening port.
 
         This is the easiest way to get an context suitable for sending client
@@ -525,6 +525,12 @@ class Context(interfaces.RequestProvider):
             loop = asyncio.get_event_loop()
 
         self = cls(loop=loop, serversite=None, loggername=loggername)
+
+        # Kirale Binary Interface
+        if kidev:
+            from .transports.kbi import TransportEndpointKBI
+            self.transport_endpoints.append((yield from TransportEndpointKBI.create_transport_endpoint(kidev, None, new_message_callback=self._dispatch_message, new_error_callback=self._dispatch_error, log=self.log, loop=loop)))
+            return self
 
         # FIXME make defaults overridable (postponed until they become configurable too)
         for transportname in defaults.get_default_clienttransports(loop=loop):
@@ -546,7 +552,7 @@ class Context(interfaces.RequestProvider):
 
     @classmethod
     @asyncio.coroutine
-    def create_server_context(cls, site, bind=("::", COAP_PORT), *, dump_to=None, loggername="coap-server", loop=None):
+    def create_server_context(cls, site, bind=("::", COAP_PORT), *, dump_to=None, loggername="coap-server", loop=None, kidev=None):
         """Create an context, bound to all addresses on the CoAP port (unless
         otherwise specified in the ``bind`` argument).
 
@@ -557,6 +563,12 @@ class Context(interfaces.RequestProvider):
             loop = asyncio.get_event_loop()
 
         self = cls(loop=loop, serversite=site, loggername=loggername)
+
+        # Kirale Binary Interface
+        if kidev:
+            from .transports.kbi import TransportEndpointKBI
+            self.transport_endpoints.append((yield from TransportEndpointKBI.create_transport_endpoint(kidev, bind[1], new_message_callback=self._dispatch_message, new_error_callback=self._dispatch_error, log=self.log, loop=loop)))
+            return self
 
         for transportname in defaults.get_default_servertransports(loop=loop):
             if transportname == 'udp6':
